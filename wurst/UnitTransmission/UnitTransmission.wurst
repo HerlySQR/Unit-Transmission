@@ -1,0 +1,589 @@
+package UnitTransmission
+
+import LinkedList
+import ErrorHandling
+import TimerUtils
+import ClosureTimers
+
+import StoreUnitColor
+
+// Variables
+
+LinkedList<Transmission> array allInstances
+int temp = 0
+force array whatForce
+force other
+
+public function force.isEmpty() returns boolean
+    if this == null
+        return true
+    else
+        temp = 0
+        this.forEach(() -> begin
+            temp++
+        end)
+    return temp == 0
+
+public function force.addForce(force toAdd)
+    if this == null or toAdd == null
+        return
+    else
+        other = this
+        toAdd.forEach(() -> other.addPlayer(GetEnumPlayer()))
+
+public function force.removeForce(force toRemove)
+    if this == null or toRemove == null
+        return
+    else
+        other = this
+        toRemove.forEach(() -> other.removePlayer(GetEnumPlayer()))
+
+public function player.getForce() returns force
+    return whatForce[this.getId()]
+
+// This are the elements of each line transmission
+
+public enum TTime
+    ADD
+    SUB
+    SET
+
+interface TransmissionCallback
+    function run()
+
+public abstract class TransmissionElements
+    private boolean isline
+    private unit talker
+    private integer talkerid
+    private playercolor color
+    private string name
+    private real duration
+    private TTime timeType
+    private boolean wait
+    private sound mysound
+    private string text
+    private LinkedList<TransmissionCallback> actions
+    private integer stepNumber
+
+    ondestroy
+        if actions != null
+            destroy actions
+    
+    function isLine() returns boolean
+        return isline
+
+    function setTalker(unit talker)
+        if not isline
+            error("This is an action")
+        this.talker = talker
+
+    function getTalker() returns unit
+        if not isline
+            error("This is an action")
+        return talker
+    
+    function setTalkerId(int talkerid)
+        if not isline
+            error("This is an action")
+        this.talkerid = talkerid
+
+    function getTalkerId() returns int
+        if not isline
+            error("This is an action")
+        return talkerid
+
+    function setColor(playercolor color)
+        if not isline
+            error("This is an action")
+        this.color = color
+
+    function getColor() returns playercolor
+        if not isline
+            error("This is an action")
+        return color
+
+    function setName(string name)
+        if not isline
+            error("This is an action")
+        this.name = name
+
+    function getName() returns string
+        if not isline
+            error("This is an action")
+        return name
+
+    function setDuration(real duration)
+        if not isline
+            error("This is an action")
+        this.duration = duration
+
+    function getDuration() returns real
+        if not isline
+            error("This is an action")
+        return duration
+
+    function setTimeType(TTime timeType)
+        if not isline
+            error("This is an action")
+        this.timeType = timeType
+
+    function getTimeType() returns TTime
+        if not isline
+            error("This is an action")
+        return timeType
+
+    function setWait(boolean wait)
+        if not isline
+            error("This is an action")
+        this.wait = wait
+
+    function waiting() returns boolean
+        if not isline
+            error("This is an action")
+        return wait
+
+    function setSound(sound mysound)
+        if not isline
+            error("This is an action")
+        this.mysound = mysound
+
+    function getSound() returns sound
+        if not isline
+            error("This is an action")
+        return mysound
+
+    function setText(string text)
+        if not isline
+            error("This is an action")
+        this.text = text
+
+    function getText() returns string
+        if not isline
+            error("This is an action")
+        return text
+
+    function setDelay(real delay)
+        if isline
+            error("This is a line")
+        this.duration = delay
+
+    function getDelay() returns real
+        if isline
+            error("This is a line")
+        return duration
+
+    function setActions(LinkedList<TransmissionCallback> actions)
+        if isline
+            error("This is a line")
+        destroy this.actions
+        this.actions = actions
+
+    function addActions(TransmissionCallback actions)
+        if isline
+            error("This is a line")
+        if this.actions == null
+            this.actions = new LinkedList<TransmissionCallback>()
+        this.actions.add(actions)
+
+    function getActions() returns LinkedList<TransmissionCallback>
+        if isline
+            error("This is a line")
+        return actions
+    
+    function setStepNumber(int number)
+        stepNumber = number
+
+    function getStepNumber() returns int
+        return stepNumber
+
+    construct(string whattype)
+        if whattype == "line"
+            isline = true
+        else if whattype == "action"
+            isline = false
+        else
+            error("Invalid type")
+    
+    static function createAction(real delay, TransmissionCallback cb) returns TransmissionElements
+        let curr = new TransmissionElementsNA("action")
+        curr.addActions(cb)
+        curr.duration = delay
+        return curr
+
+    static function createLine(unit talker, playercolor color, string name, sound mysound, string text, TTime timeType, real duration, boolean wait) returns TransmissionElements
+        let curr = new TransmissionElementsNA("line")
+        
+        curr.talker = talker
+        curr.name = name
+        curr.mysound = mysound
+        curr.text = text
+        curr.timeType = timeType
+        curr.duration = duration
+        curr.wait = wait
+        if talker == null
+            curr.talkerid = 0
+            curr.color = color == null ? PLAYER_COLOR_BLACK : color
+        else
+            curr.talkerid = talker.getTypeId()
+            curr.color = color == null ? talker.getColor() : color
+
+        return curr
+
+public class TransmissionElementsNA extends TransmissionElements
+    construct(string whattype)
+        super(whattype)
+
+// The actual struct of the transmission
+
+public class Transmission
+    private static Transmission instance = null
+
+    private player toPlayer
+    private force toForce
+    private force originalTargetForce
+    private LinkedList<TransmissionElements> steps
+
+    unit defTalker
+    int defTalkerId
+    playercolor defColor
+    string defName
+    sound defSound
+    string defText
+    real defDuration
+    TTime defTimeType
+    boolean defWillWait
+    real defDelay
+
+    private int data
+    private boolean paused
+    private boolean skipped
+    private sound played
+    private LinkedList<TransmissionCallback> final
+    private timer t
+    private TransmissionElements elements
+    private int current
+    private boolean ended
+    private LinkedList<TransmissionCallback> scene
+    
+    function getStepNumber() returns int
+        return elements.getStepNumber()
+    
+    function isLine() returns boolean
+        return elements.isLine()
+
+    function setData(int data)
+        this.data = data
+
+    function getData() returns int
+        return data
+
+    function isPaused() returns boolean
+        return paused
+    
+    function isSkipped() returns boolean
+        return skipped
+
+    function getElements() returns TransmissionElements
+        return elements
+
+    function get() returns Transmission
+        return instance
+
+    // When the transmission ends
+    private function finish()
+        destroy steps
+        t.release()
+        ended = true
+        instance = this
+        if final != null
+            final.forEach(curr -> curr.run())
+        toForce.forEach(() -> allInstances[GetEnumPlayer().getId()].remove(instance))
+        instance = null
+        originalTargetForce.destr()
+        toForce.destr()
+        destroy this
+
+    private function whatCall()
+        elements = current == steps.size() ? null : steps.get(current)
+        current++
+        if elements == null or toForce.isEmpty()
+            // If the cinematic was skipped just in the last line it won't be counted as skipped
+            skipped = toForce.isEmpty() and elements != null
+            finish()
+        else
+            if elements.isLine()
+                cinematicLine()
+            else
+                cinematicAction()
+    
+    private static function callBack()
+        (GetExpiredTimer().getData() castTo Transmission).whatCall()
+    
+    // Where the magic happens
+    private function cinematicLine()
+        int alpha = 0
+        real delay = 0.00
+
+        if scene != null
+            instance = this
+            scene.forEach(curr -> curr.run())
+            instance = null
+        
+        played = elements.getSound()
+        int tt = -1
+        switch elements.getTimeType()
+            case ADD
+                tt = bj_TIMETYPE_ADD
+            case SUB
+                tt = bj_TIMETYPE_SUB
+            case SET
+                tt = bj_TIMETYPE_SET
+        let tDuration = GetTransmissionDuration(played, tt, elements.getDuration())
+        if toForce.containsPlayer(localPlayer)
+            if played != null
+                played.play()
+            SetCinematicScene(elements.getTalkerId(), elements.getColor(), elements.getName(), elements.getText(), tDuration + bj_TRANSMISSION_PORT_HANGTIME, tDuration)
+            alpha = 255
+        
+        if elements.getTalker() != null
+            UnitAddIndicator(elements.getTalker(), 255, 255, 255, alpha)
+        
+        if elements.waiting()
+            delay = tDuration
+        
+        if delay > 0.00
+            t.start(delay, function Transmission.callBack)
+        else
+            whatCall()
+        
+        destroy elements
+    
+    private function cinematicAction()
+        instance = this
+        if scene != null
+            scene.forEach(curr -> curr.run())
+        if elements.getActions() != null
+            elements.getActions().forEach(curr -> curr.run())
+        instance = null
+
+        if elements.getDelay() > 0.00
+            t.start(elements.getDelay(), function Transmission.callBack)
+        else
+            whatCall()
+        
+        destroy elements
+    
+    function resume()
+        paused = false
+        t.resume()
+    
+    function stop()
+        paused = true
+        t.pause()
+    
+    function stop(real startAgain)
+        stop()
+        doAfter(startAgain, () -> resume())
+    
+    function start()
+        //If there is not a line or action so it just go to the end
+        current = 0
+        elements = null
+        whatCall()
+    
+    function addEnd(TransmissionCallback cb)
+        if final == null
+            final = new LinkedList<TransmissionCallback>()
+        final.add(cb)
+    
+    function addSceneActions(TransmissionCallback cb)
+        if scene == null
+            scene = new LinkedList<TransmissionCallback>()
+        scene.add(cb)
+    
+    function removeSceneActions(TransmissionCallback cb)
+        if scene != null
+            scene.remove(cb)
+    
+    //Methods to change the values individually
+       
+    private function loadStep(int stepnumber) returns TransmissionElements
+        return steps.get(stepnumber)
+
+    function setTalkerByIndex(int index, unit talker)
+        loadStep(index).setTalker(talker)
+
+    function getTalkerByIndex(int index) returns unit
+        return loadStep(index).getTalker()
+    
+    function setTalkerIdByIndex(int index, int talkerid)
+        loadStep(index).setTalkerId(talkerid)
+
+    function getTalkerIdByIndex(int index) returns int
+        return loadStep(index).getTalkerId()
+
+    function setColorByIndex(int index, playercolor color)
+        loadStep(index).setColor(color)
+
+    function getColorByIndex(int index) returns playercolor
+        return loadStep(index).getColor()
+
+    function setNameByIndex(int index, string name)
+        loadStep(index).setName(name)
+
+    function getNameByIndex(int index) returns string
+        return loadStep(index).getName()
+
+    function setDurationByIndex(int index, real duration)
+        loadStep(index).setDuration(duration)
+
+    function getDurationByIndex(int index) returns real
+        return loadStep(index).getDuration()
+
+    function setTimeTypeByIndex(int index, TTime timeType)
+        loadStep(index).setTimeType(timeType)
+
+    function getTimeTypeByIndex(int index) returns TTime
+        return loadStep(index).getTimeType()
+
+    function setWaitByIndex(int index, boolean wait)
+        loadStep(index).setWait(wait)
+
+    function waitingByIndex(int index) returns boolean
+        return loadStep(index).waiting()
+
+    function setSoundByIndex(int index, sound mysound)
+        loadStep(index).setSound(mysound)
+
+    function getSoundByIndex(int index) returns sound
+        return loadStep(index).getSound()
+
+    function setTextByIndex(int index, string text)
+        loadStep(index).setText(text)
+
+    function getTextByIndex(int index) returns string
+        return loadStep(index).getText()
+
+    function setDelayByIndex(int index, real delay)
+        loadStep(index).setDelay(delay)
+
+    function getDelayByIndex(int index) returns real
+        return loadStep(index).getDelay()
+
+    function setActionsByIndex(int index, LinkedList<TransmissionCallback> actions)
+        loadStep(index).setActions(actions)
+
+    function addActionsByIndex(int index, TransmissionCallback actions)
+        loadStep(index).addActions(actions)
+
+    function getActionsByIndex(int index) returns LinkedList<TransmissionCallback>
+        return loadStep(index).getActions()
+    
+    function removeStep(int stepnummber)
+        let what = steps.removeAt(stepnummber)
+        
+        steps.remove(what)
+        for i = stepnummber to steps.size()
+            let l = steps.get(i) 
+            l.setStepNumber(l.getStepNumber() - 1)
+    
+    function insertStep(string whattype, int stepnumber) returns TransmissionElements
+        let node = new TransmissionElementsNA(whattype)
+
+        if whattype == "line"
+            node..setTalker(defTalker)
+                ..setTalkerId(defTalkerId)
+                ..setColor(defColor)
+                ..setName(defName)
+                ..setSound(defSound)
+                ..setText(defText)
+                ..setDuration(defDuration)
+                ..setTimeType(defTimeType)
+                ..setWait(defWillWait)
+        else
+            node.setDelay(defDelay)
+        
+        steps.addAt(node, stepnumber)
+        for i = stepnumber + 1 to steps.size()
+            let l = steps.get(i) 
+            l.setStepNumber(l.getStepNumber() + 1)
+        node.setStepNumber(stepnumber)
+    
+        return node
+
+    function addLine(unit talker, playercolor color, string name, sound mysound, string text, TTime timeType, real duration, boolean wait) returns TransmissionElements
+        let what = TransmissionElements.createLine(talker, color, name, mysound, text, timeType, duration, wait)
+        steps.add(what)
+        what.setStepNumber(steps.size())
+        return what
+
+    function addLineById(int id, playercolor color, string name, sound mysound, string text, TTime timeType, real duration, boolean wait) returns TransmissionElements
+        let what = TransmissionElements.createLine(null, color, name, mysound, text, timeType, duration, wait)
+        what.setTalkerId(id)
+        return what
+
+    function addAction(real delay, TransmissionCallback cb) returns TransmissionElements
+        let what = TransmissionElements.createAction(delay, cb)
+        steps.add(what)
+        what.setStepNumber(steps.size())
+        return what
+
+    function addStep(string whattype) returns TransmissionElements
+        return insertStep(whattype, steps.size())
+
+    construct()
+        skipped = false
+        paused = false
+        toForce = CreateForce()
+        originalTargetForce = CreateForce()
+        t = getTimer()..setData(this castTo int)
+        ended = false
+        steps = new LinkedList<TransmissionElements>()
+
+    construct(force toForce, int data)
+        skipped = false
+        paused = false
+        this.toForce = CreateForce()
+        originalTargetForce = CreateForce()
+        t = getTimer()..setData(this castTo int)
+        ended = false
+        steps = new LinkedList<TransmissionElements>()
+        this.data = data
+        setTargetForce(toForce)
+
+    function setTargetForce(force toForce)
+        if toForce != null and not toForce.isEmpty()
+            instance = this
+            toForce.forEach(() -> begin
+                let p = GetEnumPlayer()
+                instance.toPlayer = p
+                instance.toForce.addPlayer(p)
+                instance.originalTargetForce.addPlayer(p)
+                allInstances[p.getId()].add(instance)
+            end)
+            instance = null
+    
+    static function onActions()
+        let p = GetTriggerPlayer()
+        let i = p.getId()
+        allInstances[i].forEach(curr -> begin
+            curr.toForce.removePlayer(p)
+            if localPlayer == p
+                // I don't know if this is free of desync (I checked and there is not desync yet)
+                EndCinematicScene()
+                if curr.played != null
+                    curr.played.stop(false, true)
+            if curr.toForce.isEmpty()
+                curr.t.pause()
+                curr.t.start(RMinBJ(bj_TRANSMISSION_PORT_HANGTIME, curr.t.getRemaining()), function Transmission.callBack)
+        end)
+        allInstances[i].clear()
+
+init
+    let t = CreateTrigger()
+    for i = 0 to PLAYER_NEUTRAL_AGGRESSIVE
+        whatForce[i] = GetForceOfPlayer(players[i]) //To use it if you wanna send the transmission just for 1 player
+        allInstances[i] = new LinkedList<Transmission>()
+        t.registerPlayerEvent(players[i], EVENT_PLAYER_END_CINEMATIC)
+    t.addAction(function Transmission.onActions)
+    ForceCinematicSubtitles(true)

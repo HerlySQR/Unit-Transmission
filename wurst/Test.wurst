@@ -1,0 +1,28 @@
+package Test
+
+import UnitTransmission
+
+function trigger.registerEnterRect(rect r)
+    let rectRegion = CreateRegion()
+    rectRegion.addRect(r)
+    this.registerEnterRegion(rectRegion, null)
+
+let trigger1 = CreateTrigger()
+
+init
+    // Test Mage
+    trigger1
+        ..registerEnterRect(gg_rct_Regi__n_000)
+        ..addAction(() -> begin
+            if GetTriggerUnit() == gg_unit_Hmkg_0002
+                let curr = new Transmission(GetTriggerUnit().getOwner().getForce(), 0)
+                trigger1.disable()
+                curr..addLine(gg_unit_Hblm_0001, PLAYER_COLOR_RED, "Mage", null, "Hello. How are you?", TTime.SET, 3., true)
+                    ..addLine(gg_unit_Hmkg_0002, PLAYER_COLOR_RED, "Barbarian", null, "I'm fine, thanks. And you?", TTime.SET, 3., true)
+                    ..addLine(gg_unit_Hblm_0001, PLAYER_COLOR_RED, "Mage", null, "I'm fine too.", TTime.SET, 3., true)
+                    ..addLine(gg_unit_Hmkg_0002, PLAYER_COLOR_RED, "Barbarian", null, "Well, see you.", TTime.SET, 2., true)
+                    ..addAction(0., () -> gg_unit_Hmkg_0002.issueImmediateOrder("thunderclap"))
+                    ..addLine(gg_unit_Hblm_0001, PLAYER_COLOR_RED, "Mage", null, "Good bye.", TTime.SET, 1., true)
+                    ..addEnd(() -> trigger1.enable())
+                    ..start()
+        end)
