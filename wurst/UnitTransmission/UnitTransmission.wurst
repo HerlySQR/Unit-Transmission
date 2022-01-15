@@ -53,16 +53,16 @@ interface TransmissionCallback
 
 public abstract class TransmissionElements
     private boolean isline
-    private unit talker
-    private integer talkerid
-    private playercolor color
-    private string name
-    private real duration
-    private TTime timeType
-    private boolean wait
-    private sound mysound
-    private string text
-    private LinkedList<TransmissionCallback> actions
+    protected unit talker
+    protected integer talkerid
+    protected playercolor color
+    protected string name
+    protected real duration
+    protected TTime timeType
+    protected boolean wait
+    protected sound mysound
+    protected string text
+    private LinkedList<TransmissionCallback> actions = null
     private integer stepNumber
 
     ondestroy
@@ -183,7 +183,8 @@ public abstract class TransmissionElements
             error("This is a line")
         if this.actions == null
             this.actions = new LinkedList<TransmissionCallback>()
-        this.actions.add(actions)
+        if actions != null
+            this.actions.add(actions)
 
     function getActions() returns LinkedList<TransmissionCallback>
         if isline
@@ -203,6 +204,10 @@ public abstract class TransmissionElements
             isline = false
         else
             error("Invalid type")
+
+public class TransmissionElementsNA extends TransmissionElements
+    construct(string whattype)
+        super(whattype)
     
     static function createAction(real delay, TransmissionCallback cb) returns TransmissionElements
         let curr = new TransmissionElementsNA("action")
@@ -228,10 +233,6 @@ public abstract class TransmissionElements
             curr.color = color == null ? talker.getColor() : color
 
         return curr
-
-public class TransmissionElementsNA extends TransmissionElements
-    construct(string whattype)
-        super(whattype)
 
 // The actual struct of the transmission
 
@@ -266,7 +267,10 @@ public class Transmission
     private LinkedList<TransmissionCallback> scene
     
     function getStepNumber() returns int
-        return elements.getStepNumber()
+        if not ended
+            return elements.getStepNumber()
+        else
+            return steps.size()
     
     function isLine() returns boolean
         return elements.isLine()
@@ -286,19 +290,19 @@ public class Transmission
     function getElements() returns TransmissionElements
         return elements
 
-    function get() returns Transmission
+    static function get() returns Transmission
         return instance
 
     // When the transmission ends
     private function finish()
-        destroy steps
-        t.release()
         ended = true
         instance = this
         if final != null
             final.forEach(curr -> curr.run())
         toForce.forEach(() -> allInstances[GetEnumPlayer().getId()].remove(instance))
         instance = null
+        destroy steps
+        t.release()
         originalTargetForce.destr()
         toForce.destr()
         destroy this
@@ -355,8 +359,6 @@ public class Transmission
             t.start(delay, function Transmission.callBack)
         else
             whatCall()
-        
-        destroy elements
     
     private function cinematicAction()
         instance = this
@@ -370,8 +372,6 @@ public class Transmission
             t.start(elements.getDelay(), function Transmission.callBack)
         else
             whatCall()
-        
-        destroy elements
     
     function resume()
         paused = false
@@ -394,12 +394,14 @@ public class Transmission
     function addEnd(TransmissionCallback cb)
         if final == null
             final = new LinkedList<TransmissionCallback>()
-        final.add(cb)
+        if cb != null
+            final.add(cb)
     
     function addSceneActions(TransmissionCallback cb)
         if scene == null
             scene = new LinkedList<TransmissionCallback>()
-        scene.add(cb)
+        if cb != null
+            scene.add(cb)
     
     function removeSceneActions(TransmissionCallback cb)
         if scene != null
@@ -504,26 +506,26 @@ public class Transmission
             node.setDelay(defDelay)
         
         steps.addAt(node, stepnumber)
-        for i = stepnumber + 1 to steps.size()
-            let l = steps.get(i) 
-            l.setStepNumber(l.getStepNumber() + 1)
         node.setStepNumber(stepnumber)
+        for i = stepnumber + 1 to steps.size() - 1
+            let l = steps.get(i)
+            l.setStepNumber(l.getStepNumber() + 1)
     
         return node
 
     function addLine(unit talker, playercolor color, string name, sound mysound, string text, TTime timeType, real duration, boolean wait) returns TransmissionElements
-        let what = TransmissionElements.createLine(talker, color, name, mysound, text, timeType, duration, wait)
+        let what = TransmissionElementsNA.createLine(talker, color, name, mysound, text, timeType, duration, wait)
         steps.add(what)
         what.setStepNumber(steps.size())
         return what
 
     function addLineById(int id, playercolor color, string name, sound mysound, string text, TTime timeType, real duration, boolean wait) returns TransmissionElements
-        let what = TransmissionElements.createLine(null, color, name, mysound, text, timeType, duration, wait)
+        let what = addLine(null, color, name, mysound, text, timeType, duration, wait)
         what.setTalkerId(id)
         return what
 
     function addAction(real delay, TransmissionCallback cb) returns TransmissionElements
-        let what = TransmissionElements.createAction(delay, cb)
+        let what = TransmissionElementsNA.createAction(delay, cb)
         steps.add(what)
         what.setStepNumber(steps.size())
         return what
