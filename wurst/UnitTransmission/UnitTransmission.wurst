@@ -565,6 +565,9 @@ public class Transmission
             end)
             instance = null
     
+    function getTargetForce() returns force
+        return toForce
+    
     static function onActions()
         let p = GetTriggerPlayer()
         let i = p.getId()
