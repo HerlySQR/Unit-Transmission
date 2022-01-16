@@ -400,11 +400,12 @@ public class Transmission
         if cb != null
             final.add(cb)
     
-    function addSceneActions(TransmissionCallback cb)
+    function addSceneActions(TransmissionCallback cb) returns TransmissionCallback
         if scene == null
             scene = new LinkedList<TransmissionCallback>()
         if cb != null
             scene.add(cb)
+        return cb
     
     function removeSceneActions(TransmissionCallback cb)
         if scene != null
@@ -484,13 +485,16 @@ public class Transmission
     function getActionsByIndex(int index) returns LinkedList<TransmissionCallback>
         return loadStep(index).getActions()
     
-    function removeStep(int stepnummber)
-        let what = steps.removeAt(stepnummber)
+    function removeStep(int stepnumber)
+        let what = steps.removeAt(stepnumber)
         
         steps.remove(what)
-        for i = stepnummber to steps.size()
+        for i = stepnumber to steps.size() - 1
             let l = steps.get(i) 
             l.setStepNumber(l.getStepNumber() - 1)
+    
+    function removeStep()
+        removeStep(size())
     
     function insertStep(string whattype, int stepnumber) returns TransmissionElements
         let node = new TransmissionElementsNA(whattype)
@@ -576,6 +580,9 @@ public class Transmission
 
     function getTargetPlayer() returns player
         return toPlayer
+
+    function size() returns int
+        return steps.size()
     
     static function onActions()
         let p = GetTriggerPlayer()
