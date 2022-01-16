@@ -567,6 +567,9 @@ public class Transmission
     
     function getTargetForce() returns force
         return toForce
+
+    function getTargetPlayer() returns player
+        return toPlayer
     
     static function onActions()
         let p = GetTriggerPlayer()
