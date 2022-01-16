@@ -567,6 +567,9 @@ public class Transmission
     
     function getTargetForce() returns force
         return toForce
+    
+    function getOriginalTargetForce() returns force
+        return originalTargetForce
 
     function getTargetPlayer() returns player
         return toPlayer
