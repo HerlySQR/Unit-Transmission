@@ -299,8 +299,11 @@ public class Transmission
         instance = this
         if final != null
             final.forEach(curr -> curr.run())
+            destroy final
         toForce.forEach(() -> allInstances[GetEnumPlayer().getId()].remove(instance))
         instance = null
+        if scene != null
+            destroy scene
         destroy steps
         t.release()
         originalTargetForce.destr()
