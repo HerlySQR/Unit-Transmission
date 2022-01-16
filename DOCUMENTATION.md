@@ -189,7 +189,8 @@ init
         ..registerEnterRect(gg_rct_Regi__n_001)
         ..addCondition(boolExpr)
         ..addAction(() -> begin
-            trigger21.disable()
+            let t = GetTriggeringTrigger()
+            t.disable()
             let f = players[0].getForce()
             new Transmission(f, 0)
                 ..addAction(2., null)
@@ -208,7 +209,7 @@ init
                 ..addEnd(() -> begin
                     ResetToGameCameraForPlayer(players[0], 0.)
                     CinematicModeBJ(false, f)
-                    trigger21.enable()
+                    t.enable()
                 end)
                 ..start()
             CinematicModeBJ(true, f)
