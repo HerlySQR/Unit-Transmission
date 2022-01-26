@@ -252,6 +252,7 @@ public class TransmissionElementsNA extends TransmissionElements
 
 public class Transmission
     private static Transmission instance = null
+    protected static force playersForce = CreateForce()
 
     private player toPlayer
     private force toForce
@@ -631,7 +632,7 @@ public class Transmission
     function size() returns int
         return steps.size()
     
-    static function onActions()
+    protected static function onActions()
         let p = GetTriggerPlayer()
         let i = p.getId()
         allInstances[i].forEach(curr -> begin
@@ -646,6 +647,42 @@ public class Transmission
                 curr.t.start(RMinBJ(bj_TRANSMISSION_PORT_HANGTIME, curr.t.getRemaining()), function Transmission.callBack)
         end)
         allInstances[i].clear()
+    
+    static function simple(unit talker, playercolor color, string name, sound mysound, string text, real duration)
+        new Transmission()
+            ..setTargetForce(playersForce)
+            ..addLine(talker, color, name, mysound, text, TTime.SET, duration, false)
+            ..start()
+    
+    static function simple(player toPlayer, unit talker, playercolor color, string name, sound mysound, string text, real duration)
+        new Transmission()
+            ..setTargetForce(toPlayer.getForce())
+            ..addLine(talker, color, name, mysound, text, TTime.SET, duration, false)
+            ..start()
+    
+    static function simple(force toForce, unit talker, playercolor color, string name, sound mysound, string text, real duration)
+        new Transmission()
+            ..setTargetForce(toForce)
+            ..addLine(talker, color, name, mysound, text, TTime.SET, duration, false)
+            ..start()
+    
+    static function simple(int talkerid, playercolor color, string name, sound mysound, string text, real duration)
+        new Transmission()
+            ..setTargetForce(playersForce)
+            ..addLineById(talkerid, color, name, mysound, text, TTime.SET, duration, false)
+            ..start()
+    
+    static function simple(player toPlayer, int talkerid, playercolor color, string name, sound mysound, string text, real duration)
+        new Transmission()
+            ..setTargetForce(toPlayer.getForce())
+            ..addLineById(talkerid, color, name, mysound, text, TTime.SET, duration, false)
+            ..start()
+    
+    static function simple(force toForce, int talkerid, playercolor color, string name, sound mysound, string text, real duration)
+        new Transmission()
+            ..setTargetForce(toForce)
+            ..addLineById(talkerid, color, name, mysound, text, TTime.SET, duration, false)
+            ..start()
 
 init
     let t = CreateTrigger()
@@ -653,5 +690,7 @@ init
         whatForce[i] = GetForceOfPlayer(players[i]) //To use it if you wanna send the transmission just for 1 player
         allInstances[i] = new LinkedList<Transmission>()
         t.registerPlayerEvent(players[i], EVENT_PLAYER_END_CINEMATIC)
+        if players[i].isIngame()
+            Transmission.playersForce.addPlayer(players[i])
     t.addAction(function Transmission.onActions)
     ForceCinematicSubtitles(true)
