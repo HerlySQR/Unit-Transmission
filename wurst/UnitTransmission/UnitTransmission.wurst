@@ -1,0 +1,545 @@
+package UnitTransmission
+
+import LinkedList
+import ErrorHandling
+import TimerUtils
+import ClosureTimers
+
+import StoreUnitColor
+
+// Variables
+
+LinkedList<Transmission> array allInstances
+int temp = 0
+force array whatForce
+force other
+
+public function force.isEmpty() returns boolean
+    if this == null
+        return true
+    else
+        temp = 0
+        this.forEach(() -> begin
+            temp++
+        end)
+    return temp == 0
+
+public function force.addForce(force toAdd)
+    if this == null or toAdd == null
+        return
+    else
+        other = this
+        toAdd.forEach(() -> other.addPlayer(GetEnumPlayer()))
+
+public function force.removeForce(force toRemove)
+    if this == null or toRemove == null
+        return
+    else
+        other = this
+        toRemove.forEach(() -> other.removePlayer(GetEnumPlayer()))
+
+public function player.getForce() returns force
+    return whatForce[this.getId()]
+
+// This are the elements of each line transmission
+
+public enum TTime
+    ADD // bj_TIMETYPE_ADD = 0
+    SET // bj_TIMETYPE_SET = 1
+    SUB // bj_TIMETYPE_SUB = 2
+
+interface TransmissionCallback
+    function run() // I could make its first parameter reffers to the running transmission, but I think you will use just closures
+
+public abstract class TransmissionElements
+    protected bool isline
+    
+    function isLine() returns bool
+        return isline
+
+    function isAction() returns bool
+        return not isline
+
+public class TransmissionLine extends TransmissionElements
+    private unit talker
+    private integer talkerid
+    private playercolor color
+    private string name
+    private real duration
+    private TTime timeType
+    private boolean wait
+    private sound mysound
+    private string text
+
+    construct()
+        isline = true
+
+    function setUnit(unit talker)
+        this.talker = talker
+
+    function getUnit() returns unit
+        return talker
+    
+    function setUnitType(int talkerid)
+        this.talkerid = talkerid
+
+    function getUnitType() returns int
+        return talkerid
+
+    function setColor(playercolor color)
+        this.color = color
+
+    function getColor() returns playercolor
+        return color
+
+    function setName(string name)
+        this.name = name
+
+    function getName() returns string
+        return name
+
+    function setDuration(real duration)
+        this.duration = duration
+
+    function getDuration() returns real
+        return duration
+
+    function setTimeType(TTime timeType)
+        this.timeType = timeType
+
+    function getTimeType() returns TTime
+        return timeType
+
+    function setWait(boolean wait)
+        if not isline
+            error("This is an action")
+        this.wait = wait
+
+    function willWait() returns boolean
+        return wait
+
+    function setSound(sound mysound)
+        this.mysound = mysound
+
+    function getSound() returns sound
+        return mysound
+
+    function setText(string text)
+        this.text = text
+
+    function getText() returns string
+        return text
+
+    ondestroy
+        isline = false
+        talker = null
+        talkerid = 0
+        color = null
+        name = null
+        duration = 0
+        timeType = null
+        wait = false
+        mysound = null
+        text = null
+
+public class TransmissionActions extends TransmissionElements
+    private real delay = 0
+    private TransmissionCallback actions = null
+
+    construct()
+        isline = false
+
+    function setDelay(real delay)
+        this.delay = delay
+
+    function getDelay() returns real
+        return delay
+
+    function setActions(TransmissionCallback actions)
+        this.actions = actions
+
+    function getActions() returns TransmissionCallback
+        return actions
+
+    ondestroy
+        delay = 0
+        if actions != null
+            destroy actions
+            actions = null
+
+// The actual struct of the transmission
+
+/** The Transmission class allows you easily create a unit transmission
+    that also can be skipped by pressing ESC, and having more control
+    of the involved actions. */
+public class Transmission
+    private static LinkedList<Transmission> all = new LinkedList<Transmission>()
+    private static Transmission instance = null
+    protected static force inGame = CreateForce()
+
+    private player toPlayer
+    private force toForce
+    private force originalTargetForce
+    private LinkedList<TransmissionElements> steps
+
+    unit defUnit
+    int defUnitType
+    playercolor defColor
+    string defName
+    sound defSound
+    string defText
+    real defDuration
+    TTime defTimeType
+    bool defWillWait
+
+    bool isSkippable
+
+    private int data
+    private bool paused
+    private bool skipped
+    private sound played
+    private TransmissionCallback final
+    private timer t
+    private TransmissionElements elements
+    private int current
+    private boolean ended
+    
+    ondestroy
+        toPlayer = null
+        toForce = null
+        originalTargetForce = null
+        steps = null
+        defUnit = null
+        defUnitType = 0
+        defColor = null
+        defSound = null
+        defText = null
+        defDuration = 0
+        defTimeType = null
+        defWillWait = false
+        data = 0
+        paused = false
+        skipped = false
+        played = null
+        t = null
+        elements = null
+        current = 0
+        ended = false
+        all.remove(this)
+
+    // When the transmission ends
+    private function finish()
+        ended = true
+        instance = this
+        if final != null
+            final.run()
+            destroy final
+            final = null
+        toForce.forEach(() -> allInstances[GetEnumPlayer().getId()].remove(instance))
+        instance = null
+        for curr in steps
+            destroy curr
+        destroy steps
+        t.release()
+        originalTargetForce.destr()
+        toForce.destr()
+        destroy this
+
+    private function whatCall()
+        elements = current == steps.size() ? null : steps.get(current)
+        current++
+        if elements == null or toForce.isEmpty()
+            // If the cinematic was skipped just in the last line it won't be counted as skipped
+            skipped = toForce.isEmpty() and elements != null
+            finish()
+        else
+            if elements.isLine()
+                cinematicLine()
+            else
+                cinematicAction()
+    
+    private static function callBack()
+        (GetExpiredTimer().getData() castTo Transmission).whatCall()
+    
+    // Where the magic happens
+    private function cinematicLine()
+        let what = elements castTo TransmissionLine
+        int alpha = 0
+        real delay = 0.00
+        
+        played = what.getSound()
+        let tDuration = GetTransmissionDuration(played, what.getTimeType() castTo int, what.getDuration())
+        if toForce.containsPlayer(localPlayer)
+            if played != null
+                played.play()
+            SetCinematicScene(what.getUnitType(), what.getColor(), what.getName(), what.getText(), tDuration + bj_TRANSMISSION_PORT_HANGTIME, tDuration)
+            alpha = 255
+        
+        if what.getUnit() != null
+            UnitAddIndicator(what.getUnit(), 255, 255, 255, alpha)
+        
+        if what.willWait()
+            delay = tDuration
+        
+        t.start(delay, function Transmission.callBack)
+        if paused
+            t.pause() // In case you paused the transmission in an actions callback
+    
+    private function cinematicAction()
+        let what = elements castTo TransmissionActions
+
+        if what.getActions() != null
+            what.getActions().run()
+
+        t.start(what.getDelay(), function Transmission.callBack)
+
+    function setData(int data)
+        this.data = data
+
+    function getData() returns int
+        return data
+
+    function isPaused() returns boolean
+        return paused
+    
+    function wasSkipped() returns boolean
+        return skipped
+
+    function getElements() returns TransmissionElements
+        return elements
+    
+    /** Resumes a paused transmission. */
+    function resume()
+        paused = false
+        t.resume()
+    
+    /** Pauses a transmission. */
+    function pause(bool fadeOut)
+        paused = true
+        t.pause()
+        if played != null
+            played.stop(false, fadeOut)
+    
+    /** Pauses a transmission and resumes it automatically after "startAgain" seconds. */
+    function pause(bool fadeOut, real startAgain)
+        pause(fadeOut)
+        doAfter(startAgain, () -> resume())
+    
+    /** Runs the transmission. */
+    function start()
+        // The default target group is all the in-game players
+        if toForce.isEmpty()
+            setTargetForce(inGame)
+        //If there is not a line or action so it just go to the end
+        current = 0
+        elements = null
+        whatCall()
+    
+    /** Adds actions that will run in the end of the transmission.
+        This actions will run even if the transmission was skipped. */
+    function addEnd(TransmissionCallback final)
+        this.final = final
+
+    /** Adds a line to the transmission. */
+    function addLine(unit talker, playercolor color, string name, sound mysound, string text, TTime timeType, real duration, boolean wait) returns TransmissionLine
+        let what = new TransmissionLine()
+        
+        what..setUnit(talker)
+            ..setName(name)
+            ..setSound(mysound)
+            ..setText(text)
+            ..setTimeType(timeType)
+            ..setDuration(duration)
+            ..setWait(wait)
+        if talker == null
+            what.setUnitType(0)
+            what.setColor(color == null ? PLAYER_COLOR_BLACK : color)
+        else
+            what.setUnitType(talker.getTypeId())
+            what.setColor(color == null ? talker.getColor() : color)
+
+        steps.add(what)
+        
+        return what
+
+    /** Adds a line to the transmission with no unit, just unit-type. */
+    function addLine(int id, playercolor color, string name, sound mysound, string text, TTime timeType, real duration, boolean wait) returns TransmissionLine
+        return addLine(null, color, name, mysound, text, timeType, duration, wait)..setUnitType(id)
+    
+    /** Adds a created line to the transmission. */
+    function addLine(TransmissionLine what) returns TransmissionLine
+        steps.add(what)
+        return what
+
+    /** Adds a line and asing its values to the defaults that you set before. */
+    function addLine() returns TransmissionLine
+        let what = new TransmissionLine()
+        
+        what..setUnit(defUnit)
+            ..setUnitType(defUnitType)
+            ..setName(defName)
+            ..setSound(defSound)
+            ..setText(defText)
+            ..setTimeType(defTimeType)
+            ..setDuration(defDuration)
+            ..setWait(defWillWait)
+        
+        steps.add(what)
+        
+        return what
+
+    /** Adds an actions and a delay before this actions. */
+    function addActions(real delay, TransmissionCallback actions) returns TransmissionActions
+        let what = new TransmissionActions()
+        what.setDelay(delay)
+        what.setActions(actions)
+        steps.add(what)
+        return what
+
+    /** Adds an actions. */
+    function addActions(TransmissionCallback actions) returns TransmissionActions
+        return addActions(0, actions)
+
+    /** Adds just a delay. */
+    function addActions(real delay) returns TransmissionActions
+        return addActions(delay, null)
+
+    /** Adds a created actions. */
+    function addActions(TransmissionActions what) returns TransmissionActions
+        steps.add(what)
+        return what
+    
+    /** Asigns the target force of the transmission. */
+    function setTargetForce(force toForce)
+        if toForce != null and not toForce.isEmpty()
+            instance = this
+            toForce.forEach(() -> begin
+                let p = GetEnumPlayer()
+                instance.toPlayer = p
+                instance.toForce.addPlayer(p)
+                instance.originalTargetForce.addPlayer(p)
+                allInstances[p.getId()].add(instance)
+            end)
+            instance = null
+    
+    /** Returns the target force of the transmission. */
+    function getTargetForce() returns force
+        return toForce
+    
+    /** The target force can be edited, this returns that you set
+        with setTargetForce. */
+    function getOriginalTargetForce() returns force
+        return originalTargetForce
+
+    /** If he target force has one player, this returns that unique
+        player, if not, this returns the last player in the force. */
+    function getTargetPlayer() returns player
+        return toPlayer
+    
+    /** Creates a new trasmission. */
+    construct()
+        skipped = false
+        paused = false
+        toForce = CreateForce()
+        originalTargetForce = CreateForce()
+        t = getTimer()..setData(this castTo int)
+        ended = false
+        steps = new LinkedList<TransmissionElements>()
+        isSkippable = true
+        all.add(this)
+
+    /** Creates a new trasmission and automatically asign its target force
+        and a value to use during the transmission. */
+    construct(force toForce, int data)
+        skipped = false
+        paused = false
+        this.toForce = CreateForce()
+        originalTargetForce = CreateForce()
+        t = getTimer()..setData(this castTo int)
+        ended = false
+        steps = new LinkedList<TransmissionElements>()
+        this.data = data
+        setTargetForce(toForce)
+        isSkippable = true
+        all.add(this)
+
+    /** Pauses all the transmissions, ideal for time-stop events.*/
+    static function pauseAll(bool fadeOut)
+        for curr in all
+            curr.pause(fadeOut)
+
+    /** Resumes all the transmissions.*/
+    static function resumeAll()
+        for curr in all
+            curr.resume()
+    
+    /** Creates and runs a transmission with just 1 line.*/
+    static function simple(unit talker, playercolor color, string name, sound mysound, string text, TTime timeType, real duration) returns Transmission
+        return new Transmission()
+            ..setTargetForce(inGame)
+            ..addLine(talker, color, name, mysound, text, timeType, duration, true)
+            ..start()
+    
+    /** Creates and runs a transmission with just 1 line.*/
+    static function simple(player toPlayer, unit talker, playercolor color, string name, sound mysound, string text, TTime timeType, real duration) returns Transmission
+        return new Transmission()
+            ..setTargetForce(toPlayer.getForce())
+            ..addLine(talker, color, name, mysound, text, timeType, duration, true)
+            ..start()
+    
+    /** Creates and runs a transmission with just 1 line.*/
+    static function simple(force toForce, unit talker, playercolor color, string name, sound mysound, string text, TTime timeType, real duration) returns Transmission
+        return new Transmission()
+            ..setTargetForce(toForce)
+            ..addLine(talker, color, name, mysound, text, timeType, duration, true)
+            ..start()
+    
+    /** Creates and runs a transmission with just 1 line.*/
+    static function simple(int talkerid, playercolor color, string name, sound mysound, string text, TTime timeType, real duration) returns Transmission
+        return new Transmission()
+            ..setTargetForce(inGame)
+            ..addLine(talkerid, color, name, mysound, text, timeType, duration, true)
+            ..start()
+    
+    /** Creates and runs a transmission with just 1 line.*/
+    static function simple(player toPlayer, int talkerid, playercolor color, string name, sound mysound, string text, TTime timeType, real duration) returns Transmission
+        return new Transmission()
+            ..setTargetForce(toPlayer.getForce())
+            ..addLine(talkerid, color, name, mysound, text, timeType, duration, true)
+            ..start()
+    
+    /** Creates and runs a transmission with just 1 line.*/
+    static function simple(force toForce, int talkerid, playercolor color, string name, sound mysound, string text, TTime timeType, real duration) returns Transmission
+        return new Transmission()
+            ..setTargetForce(toForce)
+            ..addLine(talkerid, color, name, mysound, text, timeType, duration, true)
+            ..start()
+    
+    protected static function onActions()
+        let p = GetTriggerPlayer()
+        let i = p.getId()
+        for curr in allInstances[i]
+            if curr.isSkippable and GetTriggerEventId() != EVENT_PLAYER_LEAVE
+                curr.toForce.removePlayer(p)
+                if localPlayer == p
+                    // I don't know if this is free of desync (I checked and there is not desync yet)
+                    EndCinematicScene()
+                    if curr.played != null
+                        curr.played.stop(false, true)
+                if curr.toForce.isEmpty()
+                    curr.t.pause()
+                    curr.t.start(min(bj_TRANSMISSION_PORT_HANGTIME, curr.t.getRemaining()), function Transmission.callBack)
+                allInstances[i].remove(curr)
+        if GetTriggerEventId() == EVENT_PLAYER_LEAVE
+            inGame.removePlayer(p)
+init
+    let t = CreateTrigger()
+    for i = 0 to PLAYER_NEUTRAL_AGGRESSIVE
+        whatForce[i] = GetForceOfPlayer(players[i]) //To use it if you wanna send the transmission just for 1 player
+        allInstances[i] = new LinkedList<Transmission>()
+        t.registerPlayerEvent(players[i], EVENT_PLAYER_END_CINEMATIC)
+        t.registerPlayerEvent(players[i], EVENT_PLAYER_LEAVE)
+        if players[i].isIngame()
+            Transmission.inGame.addPlayer(players[i])
+    t.addAction(function Transmission.onActions)
+    ForceCinematicSubtitles(true)

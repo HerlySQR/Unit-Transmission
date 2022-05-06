@@ -1,0 +1,166 @@
+package Test
+
+import UnitTransmission
+import ClosureTimers
+
+function trigger.registerEnterRect(rect r)
+    let rectRegion = CreateRegion()
+    rectRegion.addRect(r)
+    this.registerEnterRegion(rectRegion, null)
+
+let boolExpr = Condition(() -> GetTriggerUnit() == gg_unit_Hmkg_0003)
+
+function panMK()
+    SetCameraFieldForPlayer(players[0], CAMERA_FIELD_TARGET_DISTANCE, 1500., 0.)
+    SetCameraFieldForPlayer(players[0], CAMERA_FIELD_ROTATION, 340., 0.)
+    SetCameraFieldForPlayer(players[0], CAMERA_FIELD_ANGLE_OF_ATTACK, 340., 0.)
+    PanCameraToTimedForPlayer(players[0], GetUnitX(gg_unit_Hmkg_0003), GetUnitY(gg_unit_Hmkg_0003), 0.)
+
+function panPala()
+    SetCameraFieldForPlayer(players[0], CAMERA_FIELD_TARGET_DISTANCE, 1500., 0.)
+    SetCameraFieldForPlayer(players[0], CAMERA_FIELD_ROTATION, 90., 0.)
+    SetCameraFieldForPlayer(players[0], CAMERA_FIELD_ANGLE_OF_ATTACK, 340., 0.)
+    PanCameraToTimedForPlayer(players[0], GetUnitX(gg_unit_Hpal_0004), GetUnitY(gg_unit_Hpal_0004), 0.)
+
+let trigger1 = CreateTrigger()
+// Only have actived 1 of these
+let trigger21 = CreateTrigger()
+let trigger22 = CreateTrigger()..disable()
+// -- --
+let trigger3 = CreateTrigger()
+
+init
+    // Test Mage
+    trigger1
+        ..registerEnterRect(gg_rct_Regi__n_000)
+        ..addCondition(boolExpr)
+        ..addAction(() -> begin
+            trigger1.disable()
+            new Transmission(GetTriggerUnit().getOwner().getForce(), 0)
+                ..addLine(gg_unit_Hblm_0002, PLAYER_COLOR_RED, "Mage", null, "Hello. How are you?", TTime.SET, 3., true)
+                ..addLine(gg_unit_Hmkg_0003, PLAYER_COLOR_RED, "Barbarian", null, "I'm fine, thanks. And you?", TTime.SET, 3., true)
+                ..addLine(gg_unit_Hblm_0002, PLAYER_COLOR_RED, "Mage", null, "I'm fine too.", TTime.SET, 3., true)
+                ..addLine(gg_unit_Hmkg_0003, PLAYER_COLOR_RED, "Barbarian", null, "Well, see you.", TTime.SET, 2., true)
+                ..addActions(0., () -> gg_unit_Hmkg_0003.issueImmediateOrder("thunderclap"))
+                ..addLine(gg_unit_Hblm_0002, PLAYER_COLOR_RED, "Mage", null, "Good bye.", TTime.SET, 1., true)
+                ..addEnd(() -> trigger1.enable())
+                ..start()
+        end)
+    // Test Paladin
+    trigger21
+        ..registerEnterRect(gg_rct_Regi__n_001)
+        ..addCondition(boolExpr)
+        ..addAction(() -> begin
+            trigger21.disable()
+            let f = players[0].getForce()
+            new Transmission(f, 0)
+                ..addActions(2., null)
+                ..addActions(0., () -> panMK())
+                ..addLine(gg_unit_Hmkg_0003,null, "Barbarian", gg_snd_H06Arthas01, "Me alegro que hayas podido venir Uther.", TTime.ADD, 0., true)
+                ..addActions(0., () -> panPala())
+                ..addLine(gg_unit_Hpal_0004, null, "Paladin", gg_snd_H06Uther02, "Controla tu tono cuando te dirijas a mí chico, serás el principe pero yo todavía soy tu superior como paladín.", TTime.ADD, 0., true)
+                ..addLine(gg_unit_Hpal_0004, null, "Paladin", gg_snd_H01Uther07, "Tal y como sospechaba.", TTime.ADD, 0., true)
+                ..addActions(0., () -> panMK())
+                ..addLine(gg_unit_Hmkg_0003, null,"Barbarian", gg_snd_H06Arthas03, "Como si pudiera olvidarlo, escucha Uther, hay algo que debes saber sobre la plaga.", TTime.ADD, 0., true)
+                ..addActions(0., () -> panPala())
+                ..addLine(gg_unit_Hpal_0004, null, "Paladin", gg_snd_H06Uther05, "¡¿Qué?!", TTime.ADD, 0., true)
+                ..addActions(2., null)
+                ..addActions(0., () -> panMK())
+                ..addLine(gg_unit_Hmkg_0003, null, "Barbarian", gg_snd_H06Arthas06, "Hay que purgar toda la ciudad.", TTime.ADD, 0., true)
+                ..addEnd(() -> begin
+                    ResetToGameCameraForPlayer(players[0], 0.)
+                    CinematicModeBJ(false, f)
+                    trigger21.enable()
+                end)
+                ..start()
+            CinematicModeBJ(true, f)
+        end)
+    trigger22
+        ..registerEnterRect(gg_rct_Regi__n_001)
+        ..addCondition(boolExpr)
+        ..addAction(() -> begin
+            trigger22.disable()
+            let f = players[0].getForce()
+            let curr = new Transmission()
+            curr.defColor = PLAYER_COLOR_RED
+            curr.defWillWait = true
+            curr.defTimeType = TTime.ADD
+            curr.setTargetForce(f)
+            // Step 1
+            curr.addActions(2.)
+            // Step 2
+            curr.addActions(() -> panMK())
+            // Step 3
+            curr.addLine()
+                ..setUnit(gg_unit_Hmkg_0003)
+                ..setUnitType('Hmkg')
+                ..setName("Barbarian")
+                ..setSound(gg_snd_H06Arthas01)
+                ..setText("Me alegro que hayas podido venir Uther.")
+            // Step 4
+            curr.addActions(() -> panPala())
+            // Step 5
+            curr.addLine()
+                ..setUnit(gg_unit_Hpal_0004)
+                ..setUnitType('Hpal')
+                ..setName("Paladin")
+                ..setSound(gg_snd_H06Uther02)
+                ..setText("Controla tu tono cuando te dirijas a mí chico, serás el principe pero yo todavía soy tu superior como paladín.")
+            // Step 6
+            curr.addLine()
+                ..setUnit(gg_unit_Hpal_0004)
+                ..setUnitType('Hpal')
+                ..setName("Paladin")
+                ..setSound(gg_snd_H01Uther07)
+                ..setText("Tal y como sospechaba.")
+            // Step 7
+            curr.addActions(() -> panMK())
+            // Step 8
+            curr.addLine()
+                ..setUnit(gg_unit_Hmkg_0003)
+                ..setUnitType('Hmkg')
+                ..setName("Barbarian")
+                ..setSound(gg_snd_H06Arthas03)
+                ..setText("Como si pudiera olvidarlo, escucha Uther, hay algo que debes saber sobre la plaga.")
+            // Step 9
+            curr.addActions(() -> panPala())
+            // Step 10
+            curr.addLine()
+                ..setUnit(gg_unit_Hpal_0004)
+                ..setUnitType('Hpal')
+                ..setName("Paladin")
+                ..setSound(gg_snd_H06Uther05)
+                ..setText("¡¿Qué?!")
+            // Step 11
+            curr.addActions(2.)
+            // Step 12
+            curr.addActions(() -> panMK())
+            // Step 13
+            curr.addLine()
+                ..setUnit(gg_unit_Hmkg_0003)
+                ..setUnitType('Hmkg')
+                ..setName("Barbarian")
+                ..setSound(gg_snd_H06Arthas06)
+                ..setText("Hay que purgar toda la ciudad.")
+            // End
+            curr..addEnd(() -> begin
+                    ResetToGameCameraForPlayer(players[0], 0.)
+                    CinematicModeBJ(false, f)
+                    trigger22.enable()
+                end)
+                ..start()
+            CinematicModeBJ(true, f)
+        end)
+    // Test Cenarius
+    trigger3
+        ..registerEnterRect(gg_rct_Regi__n_002)
+        ..addCondition(boolExpr)
+        ..addAction(() -> begin
+            trigger3.disable()
+            Transmission.simple(players[0], 'Ecen', PLAYER_COLOR_BLUE, "Cenarius", gg_snd_O05Cenarius27, "¡You all will die!", TTime.ADD, 0.)
+            CameraSetEQNoiseForPlayer(players[0], 10.)
+            doAfter(7., () -> begin
+                    CameraClearNoiseForPlayer(players[0])
+                    trigger3.enable()
+                end)
+        end)

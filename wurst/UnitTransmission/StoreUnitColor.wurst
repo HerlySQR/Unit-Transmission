@@ -1,0 +1,39 @@
+/**
+    This library is to store the actual color of a unit and also if is changed.
+    I recommend use better the functions player.setColorEx, unit.setColorEx and unit.setOwnerEx
+    Also add a constant PLAYER_COLOR_BLACK that you can use 
+    and a function unit.getColor to have the saved unit color.
+*/
+
+package StoreUnitColor
+
+import UnitIndexer
+import ClosureForGroups
+
+public constant PLAYER_COLOR_BLACK = ConvertPlayerColor(PLAYER_NEUTRAL_AGGRESSIVE)
+
+playercolor array unitColor
+
+public function unit.setColorEx(playercolor color)
+    this.setColor(color)
+    unitColor[this.getIndex()] = color
+
+public function unit.getColor() returns playercolor
+    return unitColor[this.getIndex()]
+
+public function unit.setOwnerEx(player p, boolean changeColor)
+    this.setOwner(p, changeColor)
+    if changeColor
+        this.setColorEx(p.getColor())
+
+public function player.setColorEx(playercolor color, boolean changeExisting)
+    this.setColor(color)
+    if changeExisting
+        forUnitsOfPlayer(this, u -> begin
+            u.setColorEx(color)
+        end)
+
+init
+    onUnitIndex(() -> begin
+        unitColor[getIndexedUnit().getIndex()] = getIndexedUnit().getOwner().getColor()
+    end)
