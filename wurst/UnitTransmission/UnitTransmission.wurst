@@ -282,8 +282,6 @@ public class Transmission
             delay = tDuration
         
         t.start(delay, function Transmission.callBack)
-        if paused
-            t.pause() // In case you paused the transmission in an actions callback
     
     private function cinematicAction()
         let what = elements castTo TransmissionActions
@@ -292,20 +290,31 @@ public class Transmission
             what.getActions().run()
 
         t.start(what.getDelay(), function Transmission.callBack)
+        if paused
+            t.pause() // In case you paused the transmission in an actions callback
 
+    /** Stores a data. */
     function setData(int data)
         this.data = data
 
+    /** Returns the stored data. */
     function getData() returns int
         return data
 
+    /** Returns if the function is paused. */
     function isPaused() returns boolean
         return paused
     
+    /** Returns if the function was skipped (use in the end callback). */
     function wasSkipped() returns boolean
         return skipped
 
-    function getElements() returns TransmissionElements
+    /** Returns a list with all the lines or actions in the order you added them. */
+    function getElements() returns LinkedList<TransmissionElements>
+        return steps
+
+    /** Returns the current line or action. */
+    function getActualElement() returns TransmissionElements
         return elements
     
     /** Resumes a paused transmission. */
