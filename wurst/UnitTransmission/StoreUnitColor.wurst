@@ -35,5 +35,5 @@ public function player.setColorEx(playercolor color, boolean changeExisting)
 
 init
     onUnitIndex(() -> begin
-        unitColor[getIndexedUnit().getIndex()] = getIndexedUnit().getOwner().getColor()
+        unitColor[getIndexingUnit().getIndex()] = getIndexingUnit().getOwner().getColor()
     end)

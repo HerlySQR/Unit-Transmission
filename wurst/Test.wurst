@@ -1,34 +1,31 @@
 package Test
 
 import UnitTransmission
+import ClosureTimers
 
 function trigger.registerEnterRect(rect r)
     let rectRegion = CreateRegion()
     rectRegion.addRect(r)
     this.registerEnterRegion(rectRegion, null)
 
-function cond() returns boolean
-    return GetTriggerUnit() == gg_unit_Hmkg_0002
-
-let boolExpr = Condition(function cond)
+let boolExpr = Condition(() -> GetTriggerUnit() == gg_unit_Hmkg_0003)
 
 function panMK()
     SetCameraFieldForPlayer(players[0], CAMERA_FIELD_TARGET_DISTANCE, 1500., 0.)
     SetCameraFieldForPlayer(players[0], CAMERA_FIELD_ROTATION, 340., 0.)
     SetCameraFieldForPlayer(players[0], CAMERA_FIELD_ANGLE_OF_ATTACK, 340., 0.)
-    PanCameraToTimedForPlayer(players[0], GetUnitX(gg_unit_Hmkg_0002), GetUnitY(gg_unit_Hmkg_0002), 0.)
+    PanCameraToTimedForPlayer(players[0], GetUnitX(gg_unit_Hmkg_0003), GetUnitY(gg_unit_Hmkg_0003), 0.)
 
 function panPala()
     SetCameraFieldForPlayer(players[0], CAMERA_FIELD_TARGET_DISTANCE, 1500., 0.)
     SetCameraFieldForPlayer(players[0], CAMERA_FIELD_ROTATION, 90., 0.)
     SetCameraFieldForPlayer(players[0], CAMERA_FIELD_ANGLE_OF_ATTACK, 340., 0.)
-    PanCameraToTimedForPlayer(players[0], GetUnitX(gg_unit_Hpal_0003), GetUnitY(gg_unit_Hpal_0003), 0.)
+    PanCameraToTimedForPlayer(players[0], GetUnitX(gg_unit_Hpal_0004), GetUnitY(gg_unit_Hpal_0004), 0.)
 
 let trigger1 = CreateTrigger()
 // Only have actived 1 of these
 let trigger21 = CreateTrigger()
 let trigger22 = CreateTrigger()..disable()
-let trigger23 = CreateTrigger()..disable()
 // -- --
 let trigger3 = CreateTrigger()
 
@@ -40,12 +37,12 @@ init
         ..addAction(() -> begin
             trigger1.disable()
             new Transmission(GetTriggerUnit().getOwner().getForce(), 0)
-                ..addLine(gg_unit_Hblm_0001, PLAYER_COLOR_RED, "Mage", null, "Hello. How are you?", TTime.SET, 3., true)
-                ..addLine(gg_unit_Hmkg_0002, PLAYER_COLOR_RED, "Barbarian", null, "I'm fine, thanks. And you?", TTime.SET, 3., true)
-                ..addLine(gg_unit_Hblm_0001, PLAYER_COLOR_RED, "Mage", null, "I'm fine too.", TTime.SET, 3., true)
-                ..addLine(gg_unit_Hmkg_0002, PLAYER_COLOR_RED, "Barbarian", null, "Well, see you.", TTime.SET, 2., true)
-                ..addAction(0., () -> gg_unit_Hmkg_0002.issueImmediateOrder("thunderclap"))
-                ..addLine(gg_unit_Hblm_0001, PLAYER_COLOR_RED, "Mage", null, "Good bye.", TTime.SET, 1., true)
+                ..addLine(gg_unit_Hblm_0002, PLAYER_COLOR_RED, "Mage", null, "Hello. How are you?", TTime.SET, 3., true)
+                ..addLine(gg_unit_Hmkg_0003, PLAYER_COLOR_RED, "Barbarian", null, "I'm fine, thanks. And you?", TTime.SET, 3., true)
+                ..addLine(gg_unit_Hblm_0002, PLAYER_COLOR_RED, "Mage", null, "I'm fine too.", TTime.SET, 3., true)
+                ..addLine(gg_unit_Hmkg_0003, PLAYER_COLOR_RED, "Barbarian", null, "Well, see you.", TTime.SET, 2., true)
+                ..addActions(0., () -> gg_unit_Hmkg_0003.issueImmediateOrder("thunderclap"))
+                ..addLine(gg_unit_Hblm_0002, PLAYER_COLOR_RED, "Mage", null, "Good bye.", TTime.SET, 1., true)
                 ..addEnd(() -> trigger1.enable())
                 ..start()
         end)
@@ -57,19 +54,19 @@ init
             trigger21.disable()
             let f = players[0].getForce()
             new Transmission(f, 0)
-                ..addAction(2., null)
-                ..addAction(0., () -> panMK())
-                ..addLine(gg_unit_Hmkg_0002,null, "Barbarian", gg_snd_H06Arthas01, "Me alegro que hayas podido venir Uther.", TTime.ADD, 0., true)
-                ..addAction(0., () -> panPala())
-                ..addLine(gg_unit_Hpal_0003, null, "Paladin", gg_snd_H06Uther02, "Controla tu tono cuando te dirijas a mí chico, serás el principe pero yo todavía soy tu superior como paladín.", TTime.ADD, 0., true)
-                ..addLine(gg_unit_Hpal_0003, null, "Paladin", gg_snd_H01Uther07, "Tal y como sospechaba.", TTime.ADD, 0., true)
-                ..addAction(0., () -> panMK())
-                ..addLine(gg_unit_Hmkg_0002, null,"Barbarian", gg_snd_H06Arthas03, "Como si pudiera olvidarlo, escucha Uther, hay algo que debes saber sobre la plaga.", TTime.ADD, 0., true)
-                ..addAction(0., () -> panPala())
-                ..addLine(gg_unit_Hpal_0003, null, "Paladin", gg_snd_H06Uther05, "¡¿Qué?!", TTime.ADD, 0., true)
-                ..addAction(2., null)
-                ..addAction(0., () -> panMK())
-                ..addLine(gg_unit_Hmkg_0002, null, "Barbarian", gg_snd_H06Arthas06, "Hay que purgar toda la ciudad.", TTime.ADD, 0., true)
+                ..addActions(2., null)
+                ..addActions(0., () -> panMK())
+                ..addLine(gg_unit_Hmkg_0003,null, "Barbarian", gg_snd_H06Arthas01, "Me alegro que hayas podido venir Uther.", TTime.ADD, 0., true)
+                ..addActions(0., () -> panPala())
+                ..addLine(gg_unit_Hpal_0004, null, "Paladin", gg_snd_H06Uther02, "Controla tu tono cuando te dirijas a mí chico, serás el principe pero yo todavía soy tu superior como paladín.", TTime.ADD, 0., true)
+                ..addLine(gg_unit_Hpal_0004, null, "Paladin", gg_snd_H01Uther07, "Tal y como sospechaba.", TTime.ADD, 0., true)
+                ..addActions(0., () -> panMK())
+                ..addLine(gg_unit_Hmkg_0003, null,"Barbarian", gg_snd_H06Arthas03, "Como si pudiera olvidarlo, escucha Uther, hay algo que debes saber sobre la plaga.", TTime.ADD, 0., true)
+                ..addActions(0., () -> panPala())
+                ..addLine(gg_unit_Hpal_0004, null, "Paladin", gg_snd_H06Uther05, "¡¿Qué?!", TTime.ADD, 0., true)
+                ..addActions(2., null)
+                ..addActions(0., () -> panMK())
+                ..addLine(gg_unit_Hmkg_0003, null, "Barbarian", gg_snd_H06Arthas06, "Hay que purgar toda la ciudad.", TTime.ADD, 0., true)
                 ..addEnd(() -> begin
                     ResetToGameCameraForPlayer(players[0], 0.)
                     CinematicModeBJ(false, f)
@@ -84,101 +81,64 @@ init
         ..addAction(() -> begin
             trigger22.disable()
             let f = players[0].getForce()
-            new Transmission(f, 0)
-                /*1*/..addAction(2., null)
-                /*2*/..addLine(gg_unit_Hmkg_0002,null, "Barbarian", gg_snd_H06Arthas01, "Me alegro que hayas podido venir Uther.", TTime.ADD, 0., true)
-                /*3*/..addLine(gg_unit_Hpal_0003, null, "Paladin", gg_snd_H06Uther02, "Controla tu tono cuando te dirijas a mí chico, serás el principe pero yo todavía soy tu superior como paladín.", TTime.ADD, 0., true)
-                /*4*/..addLine(gg_unit_Hpal_0003, null, "Paladin", gg_snd_H01Uther07, "Tal y como sospechaba.", TTime.ADD, 0., true)
-                /*5*/..addLine(gg_unit_Hmkg_0002, null,"Barbarian", gg_snd_H06Arthas03, "Como si pudiera olvidarlo, escucha Uther, hay algo que debes saber sobre la plaga.", TTime.ADD, 0., true)
-                /*6*/..addLine(gg_unit_Hpal_0003, null, "Paladin", gg_snd_H06Uther05, "¡¿Qué?!", TTime.ADD, 0., true)
-                /*7*/..addAction(2., null)
-                /*8*/..addLine(gg_unit_Hmkg_0002, null, "Barbarian", gg_snd_H06Arthas06, "Hay que purgar toda la ciudad.", TTime.ADD, 0., true)
-                ..addSceneActions(() -> begin
-                    let i = Transmission.get().getStepNumber()
-                    if i == 2 or i == 5 or i == 8
-                        panPala()
-                    else if i == 3 or i == 6
-                        panMK()
-                end)
-                /*9*/..addEnd(() -> begin
-                    ResetToGameCameraForPlayer(players[0], 0.)
-                    CinematicModeBJ(false, f)
-                    trigger22.enable()
-                end)
-                ..start()
-            CinematicModeBJ(true, f)
-        end)
-    trigger23
-        ..registerEnterRect(gg_rct_Regi__n_001)
-        ..addCondition(boolExpr)
-        ..addAction(() -> begin
-            trigger23.disable()
-            let f = players[0].getForce()
             let curr = new Transmission()
             curr.defColor = PLAYER_COLOR_RED
             curr.defWillWait = true
             curr.defTimeType = TTime.ADD
             curr.setTargetForce(f)
             // Step 1
-            curr.addStep("action")
-                ..setDelay(2.)
+            curr.addActions(2.)
             // Step 2
-            curr.addStep("action")
-                ..addActions(() -> panMK())
+            curr.addActions(() -> panMK())
             // Step 3
-            curr.addStep("line")
-                ..setTalker(gg_unit_Hmkg_0002)
-                ..setTalkerId('Hmkg')
+            curr.addLine()
+                ..setUnit(gg_unit_Hmkg_0003)
+                ..setUnitType('Hmkg')
                 ..setName("Barbarian")
                 ..setSound(gg_snd_H06Arthas01)
                 ..setText("Me alegro que hayas podido venir Uther.")
             // Step 4
-            curr.addStep("action")
-                ..addActions(() -> panPala())
+            curr.addActions(() -> panPala())
             // Step 5
-            curr.addStep("line")
-                ..setTalker(gg_unit_Hpal_0003)
-                ..setTalkerId('Hpal')
+            curr.addLine()
+                ..setUnit(gg_unit_Hpal_0004)
+                ..setUnitType('Hpal')
                 ..setName("Paladin")
                 ..setSound(gg_snd_H06Uther02)
                 ..setText("Controla tu tono cuando te dirijas a mí chico, serás el principe pero yo todavía soy tu superior como paladín.")
             // Step 6
-            curr.addStep("line")
-                ..setTalker(gg_unit_Hpal_0003)
-                ..setTalkerId('Hpal')
+            curr.addLine()
+                ..setUnit(gg_unit_Hpal_0004)
+                ..setUnitType('Hpal')
                 ..setName("Paladin")
                 ..setSound(gg_snd_H01Uther07)
                 ..setText("Tal y como sospechaba.")
             // Step 7
-            curr.addStep("action")
-                ..addActions(() -> panMK())
+            curr.addActions(() -> panMK())
             // Step 8
-            curr.addStep("line")
-                ..setTalker(gg_unit_Hmkg_0002)
-                ..setTalkerId('Hmkg')
+            curr.addLine()
+                ..setUnit(gg_unit_Hmkg_0003)
+                ..setUnitType('Hmkg')
                 ..setName("Barbarian")
                 ..setSound(gg_snd_H06Arthas03)
                 ..setText("Como si pudiera olvidarlo, escucha Uther, hay algo que debes saber sobre la plaga.")
             // Step 9
-            curr.addStep("action")
-                ..addActions(() -> panPala())
+            curr.addActions(() -> panPala())
             // Step 10
-            curr.addStep("line")
-                ..setTalker(gg_unit_Hpal_0003)
-                ..setTalkerId('Hpal')
+            curr.addLine()
+                ..setUnit(gg_unit_Hpal_0004)
+                ..setUnitType('Hpal')
                 ..setName("Paladin")
                 ..setSound(gg_snd_H06Uther05)
                 ..setText("¡¿Qué?!")
             // Step 11
-            curr.addStep("action")
-                ..setDelay(2.)
+            curr.addActions(2.)
             // Step 12
-            curr.addStep("action")
-                ..addActions(() -> panMK())
+            curr.addActions(() -> panMK())
             // Step 13
-            curr.addStep("line")
-                ..setTalker(gg_unit_Hmkg_0002)
-                ..setTalkerId('Hmkg')
+            curr.addLine()
+                ..setUnit(gg_unit_Hmkg_0003)
+                ..setUnitType('Hmkg')
                 ..setName("Barbarian")
                 ..setSound(gg_snd_H06Arthas06)
                 ..setText("Hay que purgar toda la ciudad.")
@@ -186,7 +146,7 @@ init
             curr..addEnd(() -> begin
                     ResetToGameCameraForPlayer(players[0], 0.)
                     CinematicModeBJ(false, f)
-                    trigger23.enable()
+                    trigger22.enable()
                 end)
                 ..start()
             CinematicModeBJ(true, f)
@@ -197,12 +157,10 @@ init
         ..addCondition(boolExpr)
         ..addAction(() -> begin
             trigger3.disable()
-            new Transmission(players[0].getForce(), 0)
-                ..addLineById('Ecen', PLAYER_COLOR_BLUE, "Cenarius", gg_snd_O05Cenarius27, "¡You all will die!", TTime.ADD, 0., true)
-                ..addEnd(() -> begin
+            Transmission.simple(players[0], 'Ecen', PLAYER_COLOR_BLUE, "Cenarius", gg_snd_O05Cenarius27, "¡You all will die!", TTime.ADD, 0.)
+            CameraSetEQNoiseForPlayer(players[0], 10.)
+            doAfter(7., () -> begin
                     CameraClearNoiseForPlayer(players[0])
                     trigger3.enable()
                 end)
-                ..start()
-            CameraSetEQNoiseForPlayer(players[0], 10.)
         end)

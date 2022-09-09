@@ -1,0 +1,22 @@
+package OtherTest
+
+import DamageEvent
+import ObjectIdGenerator
+import AbilityObjEditing
+
+let BONUS = compiletime(ABIL_ID_GEN.next())
+
+init
+    DamageEvent.addListener(() -> begin
+        print(DamageEvent.getSource().getName() + " damaged " + DamageEvent.getTarget().getName() + " a quantity of " + DamageEvent.getAmount().toString())
+    end)
+    gg_unit_Hmkg_0003.addAbility(BONUS)
+    DamageEvent.addUnreducedListener(() -> begin
+        if DamageEvent.getSource() == gg_unit_Hmkg_0003
+            DamageEvent.setAmount(10)
+    end)
+
+@compiletime
+function gen()
+    new AbilityDefinitionAttackBonus(BONUS)
+        ..presetAttackBonus(lvl -> 100000)
