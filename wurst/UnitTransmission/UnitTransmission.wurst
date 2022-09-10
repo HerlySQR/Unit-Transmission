@@ -310,6 +310,10 @@ public class Transmission
     function getElements() returns TransmissionElements
         return elements
     
+    /** Returns the list of the elements in the order you set them. */
+    function getSteps() returns LinkedList<TransmissionElements>
+        return steps
+    
     /** Resumes a paused transmission. */
     function resume()
         paused = false
